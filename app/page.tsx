@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useToast } from '@/hooks/use-toast'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -51,6 +52,12 @@ export default function HomePage() {
       document.documentElement.classList.remove("dark")
     }
   }
+
+  const { toast } = useToast()
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [messageText, setMessageText] = useState("")
+  const [isSending, setIsSending] = useState(false)
 
   return (
     <div className={isDark ? "dark" : ""}>
@@ -443,30 +450,50 @@ export default function HomePage() {
                 }`}
                 style={{ animationDelay: "0.2s" }}
               >
-                <form className="space-y-6">
+                <form
+                  className="space-y-6"
+                  onSubmit={async (e) => {
+                    e.preventDefault()
+                    if (!messageText.trim() || !email.trim()) {
+                      toast({ title: 'Please enter your email and message.' })
+                      return
+                    }
+
+                    try {
+                      setIsSending(true)
+                      await new Promise((res) => setTimeout(res, 600))
+                      toast({ title: 'Message sent', description: 'Thanks, we will get back to you soon.' })
+                      setName("")
+                      setEmail("")
+                      setMessageText("")
+                    } finally {
+                      setIsSending(false)
+                    }
+                  }}
+                >
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium mb-2">
                       Your Name
                     </label>
-                    <Input id="name" placeholder="Anmol" className="h-12" />
+                    <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Anmol" className="h-12" />
                   </div>
 
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium mb-2">
                       Your Email
                     </label>
-                    <Input id="email" type="email" placeholder="Ansh@example.com" className="h-12" />
+                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Ansh@example.com" className="h-12" />
                   </div>
 
                   <div>
                     <label htmlFor="message" className="block text-sm font-medium mb-2">
                       Message
                     </label>
-                    <Textarea id="message" placeholder="Tell us how we can help..." className="min-h-32" />
+                    <Textarea id="message" value={messageText} onChange={(e) => setMessageText(e.target.value)} placeholder="Tell us how we can help..." className="min-h-32" />
                   </div>
 
-                  <Button type="submit" className="w-full h-12 hover:scale-105 transition-transform">
-                    Send Message
+                  <Button type="submit" disabled={isSending} className="w-full h-12 hover:scale-105 transition-transform">
+                    {isSending ? 'Sending...' : 'Send Message'}
                   </Button>
                 </form>
               </Card>

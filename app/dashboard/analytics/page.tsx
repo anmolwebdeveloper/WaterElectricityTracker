@@ -20,6 +20,7 @@ import {
 } from "recharts"
 import { TrendingUp, Plus } from "lucide-react"
 import { useState } from "react"
+import { useHousehold } from '@/context/household'
 
 const yearlyData = [
   { name: "Jan", electricity: 240, water: 150 },
@@ -43,9 +44,12 @@ export default function AnalyticsPage() {
   const [showAddReading, setShowAddReading] = useState(false)
   const [electricityInput, setElectricityInput] = useState("")
   const [waterInput, setWaterInput] = useState("")
+  const { addReading } = useHousehold()
 
   const handleSubmitReading = () => {
-    console.log("[v0] Reading submitted from analytics:", electricityInput, waterInput)
+    const elec = Number.parseFloat(electricityInput) || 0
+    const water = Number.parseFloat(waterInput) || 0
+    addReading(elec, water)
     setElectricityInput("")
     setWaterInput("")
     setShowAddReading(false)

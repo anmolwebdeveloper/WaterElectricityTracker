@@ -8,14 +8,14 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 import { Input } from "@/components/ui/input"
+import { HouseholdProvider, useHousehold } from '@/context/household'
+import { useEffect, useRef } from 'react'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isDark, setIsDark] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [showAddReading, setShowAddReading] = useState(false)
-  const [electricityInput, setElectricityInput] = useState("")
-  const [waterInput, setWaterInput] = useState("")
   const pathname = usePathname()
   const router = useRouter()
 
@@ -40,9 +40,89 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { label: "Settings", href: "/dashboard/settings", icon: Settings },
   ]
 
+  function HeaderContent() {
+    const { addReading, user } = useHousehold()
+    const menuRef = useRef<HTMLDivElement | null>(null)
+    const buttonRef = useRef<HTMLButtonElement | null>(null)
+
+    useEffect(() => {
+      function onDocClick(e: MouseEvent) {
+        const target = e.target as Node
+        if (
+          showProfileMenu &&
+          menuRef.current &&
+          buttonRef.current &&
+          !menuRef.current.contains(target) &&
+          !buttonRef.current.contains(target)
+        ) {
+          setShowProfileMenu(false)
+        }
+      }
+      document.addEventListener('click', onDocClick)
+      return () => document.removeEventListener('click', onDocClick)
+    }, [showProfileMenu])
+
+    return (
+      <>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Dashboard</h2>
+          <div className="flex items-center gap-4">
+
+            <button
+              onClick={toggleDarkMode}
+              className="rounded-lg p-2 hover:bg-muted transition-all hover:scale-110 hover:rotate-12"
+              aria-label="Toggle dark mode"
+            >
+              {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
+            <div className="relative">
+              <button
+                ref={buttonRef}
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-accent hover:scale-110 transition-transform cursor-pointer flex items-center justify-center text-primary-foreground font-bold"
+                aria-haspopup="menu"
+                aria-expanded={showProfileMenu}
+              >
+                {user.name[0]}
+              </button>
+
+              {showProfileMenu && (
+                <div ref={menuRef} className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-lg shadow-lg animate-slide-in-up z-[9999]">
+                  <div className="p-3 border-b border-border">
+                    <p className="font-semibold">{user.name}</p>
+                    <p className="text-xs text-muted-foreground break-words">{user.email}</p>
+                  </div>
+                  <div className="p-2">
+                    <Link
+                      href="/dashboard/profile"
+                      className="block px-3 py-2 text-sm rounded hover:bg-muted transition-colors"
+                      onClick={() => setShowProfileMenu(false)}
+                    >
+                      View Profile
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false)
+                        handleSignOut()
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm rounded hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </>
+    )
+  }
+
   return (
     <div className={isDark ? "dark" : ""}>
-      <div className="flex min-h-screen bg-background text-foreground">
+      <HouseholdProvider>
+        <div className="flex min-h-screen bg-background text-foreground">
         {/* Sidebar */}
         <aside className={`${sidebarOpen ? "w-64" : "w-20"} border-r border-border glass transition-all duration-300`}>
           <div className="flex h-16 items-center justify-between px-4">
@@ -96,113 +176,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
-          {/* Top Bar */}
           <header className="border-b border-border glass px-6 py-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Dashboard</h2>
-              <div className="flex items-center gap-4">
-                <Button
-                  size="sm"
-                  className="hover:scale-105 transition-transform"
-                  onClick={() => setShowAddReading(!showAddReading)}
-                >
-                  + Add Reading
-                </Button>
-                <button
-                  onClick={toggleDarkMode}
-                  className="rounded-lg p-2 hover:bg-muted transition-all hover:scale-110 hover:rotate-12"
-                  aria-label="Toggle dark mode"
-                >
-                  {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                </button>
-                <div className="relative">
-                  <button
-                    onClick={() => setShowProfileMenu(!showProfileMenu)}
-                    className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-accent hover:scale-110 transition-transform cursor-pointer flex items-center justify-center text-primary-foreground font-bold"
-                  >
-                    A
-                  </button>
-
-                  {showProfileMenu && (
-                    <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg animate-slide-in-up z-50">
-                      <div className="p-3 border-b border-border">
-                        <p className="font-semibold">Anmol</p>
-                        <p className="text-xs text-muted-foreground">anmol@wattsflow.com</p>
-                      </div>
-                      <div className="p-2">
-                        <Link
-                          href="/dashboard/settings"
-                          className="block px-3 py-2 text-sm rounded hover:bg-muted transition-colors"
-                          onClick={() => setShowProfileMenu(false)}
-                        >
-                          Settings
-                        </Link>
-                        <button
-                          onClick={() => {
-                            setShowProfileMenu(false)
-                            handleSignOut()
-                          }}
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-destructive/10 hover:text-destructive transition-colors"
-                        >
-                          Sign Out
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {showAddReading && (
-              <div className="mt-4 p-4 bg-muted/30 rounded-lg border border-border animate-slide-in-up">
-                <h4 className="font-semibold mb-3">Add New Reading</h4>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div>
-                    <label className="text-sm font-medium">Electricity (kWh)</label>
-                    <Input
-                      type="number"
-                      placeholder="0"
-                      value={electricityInput}
-                      onChange={(e) => setElectricityInput(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Water (Liters)</label>
-                    <Input
-                      type="number"
-                      placeholder="0"
-                      value={waterInput}
-                      onChange={(e) => setWaterInput(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <Button
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => {
-                      console.log("[v0] Reading submitted from header:", electricityInput, waterInput)
-                      setElectricityInput("")
-                      setWaterInput("")
-                      setShowAddReading(false)
-                    }}
-                  >
-                    Submit
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setShowAddReading(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
+            <HeaderContent />
           </header>
 
           {/* Page Content */}
           <main className="flex-1 overflow-auto p-6">{children}</main>
         </div>
       </div>
+      </HouseholdProvider>
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { Zap, Droplets, AlertTriangle, Users, TrendingDown, Trophy, Plus, UserPlus, Check } from "lucide-react"
 import { useState, useEffect } from "react"
+import { useHousehold } from '@/context/household'
 
 const chartDataByPeriod = {
   day: [
@@ -72,8 +73,7 @@ export default function DashboardPage() {
   const [timePeriod, setTimePeriod] = useState<"day" | "week" | "month">("week")
   const [visibleItems, setVisibleItems] = useState<Set<string>>(new Set())
   const [showAnomaly, setShowAnomaly] = useState(false)
-  const [electricityReading, setElectricityReading] = useState(0)
-  const [waterReading, setWaterReading] = useState(0)
+  const { electricityReading, waterReading, addReading } = useHousehold()
   const [electricityInput, setElectricityInput] = useState("")
   const [waterInput, setWaterInput] = useState("")
   const [goalProgress, setGoalProgress] = useState(0)
@@ -105,8 +105,7 @@ export default function DashboardPage() {
     const water = Number.parseFloat(waterInput) || 0
 
     if (elec > 0 || water > 0) {
-      setElectricityReading((prev) => prev + elec)
-      setWaterReading((prev) => prev + water)
+      addReading(elec, water)
 
       const elecProgress = Math.min((elec / 100) * 100, 100)
       const waterProgress = Math.min((water / 150) * 100, 100)
