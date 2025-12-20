@@ -40,7 +40,10 @@ router.patch('/verify/:id', protect, async (req, res) => {
 
     user.isVerified = true;
     user.verifiedAt = new Date();
-    user.verifiedBy = req.user._id;
+    // Only set verifiedBy if it's not the admin (admin has string ID 'admin')
+    if (req.user._id !== 'admin' && req.user.id !== 'admin') {
+      user.verifiedBy = req.user._id;
+    }
     
     await user.save();
 

@@ -14,6 +14,20 @@ export const protect = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Check if this is the admin user
+    if (decoded.id === 'admin' && decoded.isAdmin) {
+      req.user = {
+        _id: 'admin',
+        id: 'admin',
+        name: 'Admin',
+        email: 'admin@wattsflow.com',
+        isAdmin: true,
+        isVerified: true
+      };
+      return next();
+    }
+    
     req.user = await User.findById(decoded.id).select('-password');
     
     if (!req.user) {

@@ -35,14 +35,29 @@ export default function LoginPage() {
       
       localStorage.setItem('token', response.token)
       localStorage.setItem('user', JSON.stringify(response.user))
+      localStorage.removeItem('isNewUser')
+      
+      // Check if user is admin
+      if (response.user.isAdmin || response.user.email === 'admin@wattsflow.com') {
+        toast({
+          title: "Welcome Admin!",
+          description: "Redirecting to admin dashboard...",
+        })
+        navigate("/admin/dashboard")
+        return
+      }
       
       toast({
-        title: "Login Successful",
+        title: "Welcome Back!",
         description: "Redirecting to your dashboard...",
       })
       
-      // Always go to dashboard
-      navigate("/dashboard")
+      // Check if regular user is verified
+      if (!response.user.isVerified) {
+        navigate("/pending-verification")
+      } else {
+        navigate("/dashboard")
+      }
     } catch (error) {
       toast({
         title: "Login Failed",

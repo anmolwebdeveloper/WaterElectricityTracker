@@ -103,6 +103,31 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Please provide email and password' });
     }
 
+    // Hardcoded admin credentials
+    if (email === 'admin@wattsflow.com' && password === '123456') {
+      // Create a temporary admin user object (not stored in DB)
+      const adminUser = {
+        id: 'admin',
+        name: 'Admin',
+        email: 'admin@wattsflow.com',
+        authMethod: 'email',
+        isVerified: true,
+        isAdmin: true,
+        electricityMeterNo: null,
+        waterMeterNo: null
+      };
+      
+      // Generate token with admin ID
+      const token = jwt.sign({ id: 'admin', isAdmin: true }, process.env.JWT_SECRET, {
+        expiresIn: process.env.JWT_EXPIRE || '7d'
+      });
+      
+      return res.json({
+        token,
+        user: adminUser
+      });
+    }
+
     const user = await User.findOne({ email });
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -117,6 +142,7 @@ router.post('/login', async (req, res) => {
         email: user.email,
         authMethod: user.authMethod,
         isVerified: user.isVerified,
+        isAdmin: false,
         electricityMeterNo: user.electricityMeterNo,
         waterMeterNo: user.waterMeterNo
       }

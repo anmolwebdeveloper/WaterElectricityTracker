@@ -81,14 +81,15 @@ export default function SignupPage() {
       
       localStorage.setItem('token', response.token)
       localStorage.setItem('user', JSON.stringify(response.user))
+      localStorage.setItem('isNewUser', 'true')
       
       toast({
-        title: "Account Created!",
-        description: "Welcome to WattsFlow! Your meter numbers will be verified soon.",
+        title: "Account Created Successfully!",
+        description: "Please wait while we verify your account.",
       })
       
-      // Redirect to dashboard
-      navigate("/dashboard")
+      // Redirect to pending verification page for new signups
+      navigate("/pending-verification")
     } catch (error) {
       toast({
         title: "Registration Failed",
