@@ -191,24 +191,6 @@ npm run build            # Build frontend for production
 npm run install:all      # Install all dependencies
 ```
 
-## 🚨 Migration from Next.js
-
-This project was converted from Next.js to React + Vite. If you have the old Next.js version:
-
-### Files to Delete (Next.js specific):
-- `.next/` directory
-- `next.config.mjs`
-- `next-env.d.ts`
-- `app/` directory (content moved to `frontend/src/pages/`)
-- All Next.js specific imports and features
-
-### Key Changes:
-1. `Link` from Next.js → `Link` from `react-router-dom`
-2. `useRouter` from Next.js → `useNavigate`, `useLocation` from `react-router-dom`
-3. `"use client"` directives removed
-4. Server components converted to client components
-5. App directory structure → Standard React pages structure
-
 ## 👥 Contributing
 
 1. Fork the repository
