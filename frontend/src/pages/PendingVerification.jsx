@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { motion } from "framer-motion"
-import { Clock, CheckCircle2, Loader2, LogOut, Mail, RefreshCw, Sparkles } from "lucide-react"
+import { Clock, CheckCircle2, Loader2, LogOut, Mail, RefreshCw, Sparkles, AlertTriangle, Shield, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { authAPI } from "@/utils/api"
 import { useToast } from "@/hooks/use-toast"
@@ -13,45 +13,63 @@ export default function PendingVerification() {
   const [resending, setResending] = useState(false)
   const [user, setUser] = useState(null)
   const [lastCheckTime, setLastCheckTime] = useState(new Date())
+  const [accountStatus, setAccountStatus] = useState('pending') // 'pending', 'removed', 'suspended', 'active'
+  const [statusReason, setStatusReason] = useState(null)
 
   useEffect(() => {
     // Get user from localStorage
     const storedUser = localStorage.getItem('user')
     if (storedUser) {
-      setUser(JSON.parse(storedUser))
+      const userData = JSON.parse(storedUser)
+      setUser(userData)
+      setAccountStatus(userData.status || 'pending')
     }
 
-    // Check verification status every 30 seconds
+    // Check for status code from middleware
+    const statusCode = localStorage.getItem('accountStatusCode')
+    if (statusCode) {
+      if (statusCode === 'ACCOUNT_REMOVED') setAccountStatus('removed')
+      if (statusCode === 'ACCOUNT_SUSPENDED') setAccountStatus('suspended')
+      if (statusCode === 'VERIFICATION_PENDING') setAccountStatus('pending')
+    }
+
+    // Check verification status every 30 seconds (only if pending)
     const interval = setInterval(async () => {
-      try {
-        setChecking(true)
-        const response = await authAPI.getMe()
-        setLastCheckTime(new Date())
-        
-        if (response.user.isVerified) {
-          clearInterval(interval)
-          toast({
-            title: "🎉 Account Verified!",
-            description: "Redirecting to your dashboard...",
-          })
+      if (accountStatus === 'pending') {
+        try {
+          setChecking(true)
+          const response = await authAPI.getMe()
+          setLastCheckTime(new Date())
           
-          localStorage.setItem('user', JSON.stringify(response.user))
-          localStorage.removeItem('isNewUser')
-          
-          // Redirect to dashboard
-          setTimeout(() => {
-            navigate("/dashboard")
-          }, 1500)
+          if (response.user.isVerified && response.user.status === 'active') {
+            clearInterval(interval)
+            toast({
+              title: "🎉 Account Verified!",
+              description: "Redirecting to your dashboard...",
+            })
+            
+            localStorage.setItem('user', JSON.stringify(response.user))
+            localStorage.removeItem('isNewUser')
+            localStorage.removeItem('accountStatusCode')
+            
+            setTimeout(() => {
+              navigate("/dashboard")
+            }, 1500)
+          } else if (response.user.status === 'removed' || response.user.status === 'suspended') {
+            setAccountStatus(response.user.status)
+            setStatusReason(response.user.statusReason)
+            clearInterval(interval)
+          }
+        } catch (error) {
+          console.error('Failed to check verification status:', error)
+        } finally {
+          setChecking(false)
         }
-      } catch (error) {
-        console.error('Failed to check verification status:', error)
-      } finally {
-        setChecking(false)
       }
     }, 30000) // Check every 30 seconds
 
     return () => clearInterval(interval)
-  }, [navigate, toast])
+  }, [navigate, toast, accountStatus])
 
   const handleResendEmail = async () => {
     try {
@@ -79,7 +97,7 @@ export default function PendingVerification() {
       const response = await authAPI.getMe()
       setLastCheckTime(new Date())
       
-      if (response.user.isVerified) {
+      if (response.user.isVerified && response.user.status === 'active') {
         toast({
           title: "🎉 Account Verified!",
           description: "Redirecting to your dashboard...",
@@ -87,10 +105,19 @@ export default function PendingVerification() {
         
         localStorage.setItem('user', JSON.stringify(response.user))
         localStorage.removeItem('isNewUser')
+        localStorage.removeItem('accountStatusCode')
         
         setTimeout(() => {
           navigate("/dashboard")
         }, 1500)
+      } else if (response.user.status === 'removed' || response.user.status === 'suspended') {
+        setAccountStatus(response.user.status)
+        setStatusReason(response.user.statusReason)
+        toast({
+          title: "Account Status Updated",
+          description: `Your account is currently ${response.user.status}.`,
+          variant: "destructive",
+        })
       } else {
         toast({
           title: "Still Pending",
@@ -112,8 +139,48 @@ export default function PendingVerification() {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     localStorage.removeItem('isNewUser')
+    localStorage.removeItem('accountStatusCode')
     navigate("/login")
   }
+
+  // Get status-specific information
+  const getStatusInfo = () => {
+    switch (accountStatus) {
+      case 'removed':
+        return {
+          icon: <AlertTriangle className="h-20 w-20 text-red-400" />,
+          title: "Account Deactivated",
+          description: "Your account has been deactivated by an administrator.",
+          color: "red",
+          badgeText: "Deactivated",
+          canCheck: false,
+          message: statusReason || "Please contact support for reactivation."
+        }
+      case 'suspended':
+        return {
+          icon: <AlertTriangle className="h-20 w-20 text-orange-400" />,
+          title: "Account Suspended",
+          description: "Your account has been temporarily suspended.",
+          color: "orange",
+          badgeText: "Suspended",
+          canCheck: false,
+          message: statusReason || "Please contact support for more information."
+        }
+      case 'pending':
+      default:
+        return {
+          icon: <Clock className="h-20 w-20 text-blue-400" />,
+          title: "Verification Pending",
+          description: "Your account is awaiting admin approval.",
+          color: "blue",
+          badgeText: "Pending Review",
+          canCheck: true,
+          message: "An administrator is reviewing your information to ensure accuracy."
+        }
+    }
+  }
+
+  const statusInfo = getStatusInfo()
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 relative overflow-hidden">
@@ -134,7 +201,7 @@ export default function PendingVerification() {
           <motion.div
             animate={{
               scale: [1, 1.05, 1],
-              rotate: [0, 2, -2, 0],
+              rotate: accountStatus === 'pending' ? [0, 2, -2, 0] : [0, 0, 0, 0],
             }}
             transition={{
               duration: 4,
@@ -144,29 +211,29 @@ export default function PendingVerification() {
             className="flex justify-center"
           >
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-full blur-2xl animate-pulse" />
-              <div className="relative bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full p-8 border border-white/10">
-                <Clock className="h-20 w-20 text-blue-400" />
+              <div className={`absolute inset-0 bg-gradient-to-br from-${statusInfo.color}-500/30 to-${statusInfo.color === 'blue' ? 'purple' : statusInfo.color}-500/30 rounded-full blur-2xl animate-pulse`} />
+              <div className={`relative bg-gradient-to-br from-${statusInfo.color}-500/20 to-${statusInfo.color === 'blue' ? 'purple' : statusInfo.color}-500/20 rounded-full p-8 border border-white/10`}>
+                {statusInfo.icon}
               </div>
             </div>
           </motion.div>
 
           {/* Heading */}
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-blue-500/20 mb-2">
-              <Sparkles className="h-4 w-4 text-blue-400" />
-              <span className="text-sm font-medium text-blue-300">Account Created</span>
+            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-${statusInfo.color}-500/20 mb-2`}>
+              <Sparkles className={`h-4 w-4 text-${statusInfo.color}-400`} />
+              <span className={`text-sm font-medium text-${statusInfo.color}-300`}>{statusInfo.badgeText}</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Verification Pending
+            <h1 className={`text-4xl md:text-5xl font-bold bg-gradient-to-r from-${statusInfo.color}-400 via-${statusInfo.color === 'blue' ? 'purple' : statusInfo.color}-400 to-${statusInfo.color === 'blue' ? 'pink' : statusInfo.color}-600 bg-clip-text text-transparent`}>
+              {statusInfo.title}
             </h1>
             <p className="text-lg text-slate-400">
-              Your account is awaiting admin approval
+              {statusInfo.description}
             </p>
           </div>
 
-          {/* Meter Numbers Info */}
-          {user && (
+          {/* Meter Numbers Info - Only show for pending status */}
+          {user && accountStatus === 'pending' && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -207,6 +274,64 @@ export default function PendingVerification() {
             </motion.div>
           )}
 
+          {/* User Info for removed/suspended accounts */}
+          {user && (accountStatus === 'removed' || accountStatus === 'suspended') && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="space-y-3"
+            >
+              <div className="glass rounded-xl border border-white/10 p-6 space-y-3">
+                <div className="flex items-center gap-3 text-slate-300">
+                  <div className="p-2 rounded-lg bg-purple-500/10">
+                    <Shield className="h-5 w-5 text-purple-400" />
+                  </div>
+                  <div className="text-left flex-1">
+                    <p className="text-xs text-slate-500">Account Name</p>
+                    <p className="font-semibold text-slate-200">{user.name}</p>
+                  </div>
+                </div>
+              </div>
+
+              {user.email && (
+                <div className="glass rounded-xl border border-white/10 p-6 space-y-3">
+                  <div className="flex items-center gap-3 text-slate-300">
+                    <div className="p-2 rounded-lg bg-blue-500/10">
+                      <Mail className="h-5 w-5 text-blue-400" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="text-xs text-slate-500">Email</p>
+                      <p className="font-semibold text-slate-200">{user.email}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {user.phoneNumber && (
+                <div className="glass rounded-xl border border-white/10 p-6 space-y-3">
+                  <div className="flex items-center gap-3 text-slate-300">
+                    <div className="p-2 rounded-lg bg-cyan-500/10">
+                      <Phone className="h-5 w-5 text-cyan-400" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="text-xs text-slate-500">Phone</p>
+                      <p className="font-semibold text-slate-200">{user.phoneNumber}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Reason for removal/suspension */}
+              {statusReason && (
+                <div className={`glass rounded-xl border border-${statusInfo.color}-500/30 p-6 text-left`}>
+                  <p className="text-sm font-semibold text-slate-200 mb-2">Reason:</p>
+                  <p className={`text-sm text-${statusInfo.color}-300`}>{statusReason}</p>
+                </div>
+              )}
+            </motion.div>
+          )}
+
           {/* Status Message */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -216,112 +341,146 @@ export default function PendingVerification() {
           >
             <div className="space-y-3">
               <p className="text-slate-300 leading-relaxed">
-                An administrator is reviewing your information to ensure accuracy. This typically takes 1-2 business days.
+                {statusInfo.message}
               </p>
               
-              {/* Animated Progress Dots */}
-              <div className="flex justify-center gap-2">
-                {[0, 1, 2].map((i) => (
-                  <motion.div
-                    key={i}
-                    animate={{
-                      scale: [1, 1.5, 1],
-                      opacity: [0.3, 1, 0.3],
-                    }}
-                    transition={{
-                      duration: 1.5,
-                      repeat: Infinity,
-                      delay: i * 0.2,
-                    }}
-                    className="w-2.5 h-2.5 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full"
-                  />
-                ))}
-              </div>
+              {/* Animated Progress Dots - only for pending */}
+              {accountStatus === 'pending' && (
+                <div className="flex justify-center gap-2">
+                  {[0, 1, 2].map((i) => (
+                    <motion.div
+                      key={i}
+                      animate={{
+                        scale: [1, 1.5, 1],
+                        opacity: [0.3, 1, 0.3],
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        delay: i * 0.2,
+                      }}
+                      className="w-2.5 h-2.5 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full"
+                    />
+                  ))}
+                </div>
+              )}
 
-              {checking && (
+              {checking && accountStatus === 'pending' && (
                 <div className="flex items-center justify-center gap-2 text-sm text-blue-400">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span>Checking verification status...</span>
                 </div>
               )}
 
-              <p className="text-xs text-slate-500">
-                Last checked: {lastCheckTime.toLocaleTimeString()}
-              </p>
+              {accountStatus === 'pending' && (
+                <p className="text-xs text-slate-500">
+                  Last checked: {lastCheckTime.toLocaleTimeString()}
+                </p>
+              )}
             </div>
 
-            {/* Action Buttons */}
-            <div className="grid md:grid-cols-2 gap-4">
-              <Button
-                onClick={handleManualCheck}
-                disabled={checking}
-                variant="outline"
-                className="glass border-white/10 hover:border-blue-500/50 hover:bg-blue-500/10 transition-all h-12"
-              >
-                {checking ? (
-                  <><Loader2 className="h-4 w-4 animate-spin mr-2" />Checking...</>
-                ) : (
-                  <><RefreshCw className="h-4 w-4 mr-2" />Check Status</>
-                )}
-              </Button>
-              
-              <Button
-                onClick={handleResendEmail}
-                disabled={resending}
-                variant="outline"
-                className="glass border-white/10 hover:border-purple-500/50 hover:bg-purple-500/10 transition-all h-12"
-              >
-                {resending ? (
-                  <><Loader2 className="h-4 w-4 animate-spin mr-2" />Sending...</>
-                ) : (
-                  <><Mail className="h-4 w-4 mr-2" />Resend Email</>
-                )}
-              </Button>
-            </div>
+            {/* Action Buttons - only show for pending */}
+            {statusInfo.canCheck && (
+              <div className="grid md:grid-cols-2 gap-4">
+                <Button
+                  onClick={handleManualCheck}
+                  disabled={checking}
+                  variant="outline"
+                  className="glass border-white/10 hover:border-blue-500/50 hover:bg-blue-500/10 transition-all h-12"
+                >
+                  {checking ? (
+                    <><Loader2 className="h-4 w-4 animate-spin mr-2" />Checking...</>
+                  ) : (
+                    <><RefreshCw className="h-4 w-4 mr-2" />Check Status</>
+                  )}
+                </Button>
+                
+                <Button
+                  onClick={handleResendEmail}
+                  disabled={resending}
+                  variant="outline"
+                  className="glass border-white/10 hover:border-purple-500/50 hover:bg-purple-500/10 transition-all h-12"
+                >
+                  {resending ? (
+                    <><Loader2 className="h-4 w-4 animate-spin mr-2" />Sending...</>
+                  ) : (
+                    <><Mail className="h-4 w-4 mr-2" />Resend Email</>
+                  )}
+                </Button>
+              </div>
+            )}
           </motion.div>
 
-          {/* Info Cards */}
+          {/* Info Cards - different based on status */}
           <div className="grid gap-4">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.6 }}
-              className="glass rounded-xl border border-blue-500/20 p-5 text-left group hover:border-blue-500/40 transition-all"
-            >
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-lg bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
-                  <CheckCircle2 className="h-6 w-6 text-blue-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-base font-semibold text-slate-200 mb-2">What happens next?</p>
-                  <p className="text-sm text-slate-400 leading-relaxed">
-                    You'll receive an email notification once your account is verified. The page will automatically refresh and redirect you to the dashboard.
-                  </p>
-                </div>
-              </div>
-            </motion.div>
+            {accountStatus === 'pending' && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="glass rounded-xl border border-blue-500/20 p-5 text-left group hover:border-blue-500/40 transition-all"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-lg bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
+                      <CheckCircle2 className="h-6 w-6 text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-base font-semibold text-slate-200 mb-2">What happens next?</p>
+                      <p className="text-sm text-slate-400 leading-relaxed">
+                        You'll receive an email notification once your account is verified. The page will automatically refresh and redirect you to the dashboard.
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.7 }}
-              className="glass rounded-xl border border-amber-500/20 p-5 text-left group hover:border-amber-500/40 transition-all"
-            >
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-lg bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">
-                  <Clock className="h-6 w-6 text-amber-400" />
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.7 }}
+                  className="glass rounded-xl border border-amber-500/20 p-5 text-left group hover:border-amber-500/40 transition-all"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-lg bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">
+                      <Clock className="h-6 w-6 text-amber-400" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-base font-semibold text-slate-200 mb-2">Need help?</p>
+                      <p className="text-sm text-slate-400 leading-relaxed">
+                        If your verification is taking longer than expected, contact our support team at{" "}
+                        <a href="mailto:support@wattsflow.com" className="text-amber-400 hover:underline">
+                          support@wattsflow.com
+                        </a>
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              </>
+            )}
+
+            {(accountStatus === 'removed' || accountStatus === 'suspended') && (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.6 }}
+                className={`glass rounded-xl border border-${statusInfo.color}-500/20 p-5 text-left group hover:border-${statusInfo.color}-500/40 transition-all`}
+              >
+                <div className="flex items-start gap-4">
+                  <div className={`p-3 rounded-lg bg-${statusInfo.color}-500/10 group-hover:bg-${statusInfo.color}-500/20 transition-colors`}>
+                    <Mail className="h-6 w-6 text-${statusInfo.color}-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-base font-semibold text-slate-200 mb-2">Need Assistance?</p>
+                    <p className="text-sm text-slate-400 leading-relaxed">
+                      To reactivate your account or learn more about this status, please contact our support team at{" "}
+                      <a href="mailto:support@wattsflow.com" className={`text-${statusInfo.color}-400 hover:underline`}>
+                        support@wattsflow.com
+                      </a>
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-base font-semibold text-slate-200 mb-2">Need help?</p>
-                  <p className="text-sm text-slate-400 leading-relaxed">
-                    If your verification is taking longer than expected, contact our support team at{" "}
-                    <a href="mailto:support@wattsflow.com" className="text-amber-400 hover:underline">
-                      support@wattsflow.com
-                    </a>
-                  </p>
-                </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            )}
           </div>
 
           {/* Action Buttons */}

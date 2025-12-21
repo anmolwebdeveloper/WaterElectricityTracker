@@ -213,12 +213,12 @@ export default function HomePage() {
 
               {/* Hero Headline - Premium Typography */}
               <div className="max-w-5xl space-y-6 opacity-0 animate-fade-slide-up" style={{ animationDelay: "0.3s", animationFillMode: "forwards" }}>
-                <h1 className="text-6xl sm:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.1]">
-                  <span className="block text-gray-900 dark:text-white mb-2">
+                <h1 className="text-6xl sm:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.2] pb-2">
+                  <span className="block text-gray-900 dark:text-white mb-3">
                     Resource Management
                   </span>
-                  <span className="block bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                    Reimagined for 2025
+                  <span className="block bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent py-2">
+                    Transformed for 2025
                   </span>
                 </h1>
               </div>
@@ -226,21 +226,21 @@ export default function HomePage() {
               {/* Refined Subheadline */}
               <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-400 max-w-3xl leading-relaxed font-light opacity-0 animate-fade-slide-up"
                  style={{ animationDelay: "0.5s", animationFillMode: "forwards" }}>
-                Transform your utility consumption with AI-driven insights, predictive analytics, and intelligent automation. 
-                <span className="font-semibold text-gray-900 dark:text-white"> Save up to 25%</span> on bills while reducing your carbon footprint.
+                Monitor your water and electricity consumption with cutting-edge AI analytics, real-time insights, and smart automation. 
+                <span className="font-bold text-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text"> Reduce bills by 25%</span> while protecting the environment.
               </p>
 
               {/* Premium CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 items-center opacity-0 animate-fade-slide-up pt-4"
+              <div className="flex flex-col sm:flex-row gap-4 items-center opacity-0 animate-fade-slide-up pt-6"
                    style={{ animationDelay: "0.7s", animationFillMode: "forwards" }}>
                 <Link to="/signup">
                   <Button
                     size="lg"
-                    className="text-base px-10 py-7 font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-2xl hover:shadow-blue-500/25 hover:scale-105 transition-all duration-300 border-0"
+                    className="text-base px-12 py-7 font-semibold rounded-2xl bg-gradient-to-r from-blue-600 via-blue-700 to-purple-600 hover:from-blue-700 hover:via-purple-700 hover:to-purple-800 shadow-2xl hover:shadow-blue-500/30 hover:scale-105 transition-all duration-300 border-0 group"
                   >
                     <span className="flex items-center gap-2">
                       Start Free Trial
-                      <ChevronRight className="h-5 w-5" />
+                      <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                     </span>
                   </Button>
                 </Link>
@@ -248,27 +248,31 @@ export default function HomePage() {
                   <Button
                     variant="outline"
                     size="lg"
-                    className="text-base px-10 py-7 font-semibold rounded-xl bg-white/50 dark:bg-white/5 backdrop-blur-xl border-2 border-gray-300 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:scale-105 transition-all duration-300 shadow-lg"
+                    className="text-base px-12 py-7 font-semibold rounded-2xl bg-white/60 dark:bg-white/5 backdrop-blur-xl border-2 border-gray-300 dark:border-white/20 hover:bg-white dark:hover:bg-white/10 hover:scale-105 hover:border-blue-500 dark:hover:border-blue-500 transition-all duration-300 shadow-lg"
                   >
-                    Watch Demo
+                    <span className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5" />
+                      Watch Demo
+                    </span>
                   </Button>
                 </Link>
               </div>
 
               {/* Social Proof - Refined Stats */}
-              <div className="grid grid-cols-3 gap-12 max-w-3xl pt-16 opacity-0 animate-fade-slide-up"
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-12 max-w-4xl pt-16 opacity-0 animate-fade-slide-up"
                    style={{ animationDelay: "0.9s", animationFillMode: "forwards" }}>
                 {[
-                  { value: "50K+", label: "Active Users", sublabel: "Worldwide" },
-                  { value: "25%", label: "Avg. Savings", sublabel: "Per Month" },
-                  { value: "99.9%", label: "Uptime", sublabel: "24/7 Monitoring" },
+                  { value: "50K+", label: "Active Users", sublabel: "Worldwide", icon: Users },
+                  { value: "25%", label: "Avg. Savings", sublabel: "Per Month", icon: TrendingDown },
+                  { value: "24/7", label: "Monitoring", sublabel: "Real-time Data", icon: BarChart3 },
                 ].map((stat, i) => (
-                  <div key={i} className="flex flex-col items-center group cursor-pointer">
-                    <div className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2 group-hover:scale-110 transition-transform duration-300">
+                  <div key={i} className="flex flex-col items-center group cursor-pointer p-6 rounded-2xl hover:bg-white/50 dark:hover:bg-white/5 transition-all duration-300">
+                    <stat.icon className="h-8 w-8 text-blue-600 dark:text-blue-400 mb-3 group-hover:scale-110 transition-transform" />
+                    <div className="text-5xl font-extrabold bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2 group-hover:scale-110 transition-transform duration-300">
                       {stat.value}
                     </div>
-                    <div className="text-sm font-semibold text-gray-900 dark:text-white">{stat.label}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{stat.sublabel}</div>
+                    <div className="text-sm font-bold text-gray-900 dark:text-white">{stat.label}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{stat.sublabel}</div>
                   </div>
                 ))}
               </div>

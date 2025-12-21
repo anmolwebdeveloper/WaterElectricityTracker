@@ -78,12 +78,60 @@ export const analyticsAPI = {
 
 // Admin API
 export const adminAPI = {
+  // User Management
+  getUsers: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return apiRequest(`/admin/users${query ? `?${query}` : ''}`);
+  },
   getPending: () => apiRequest('/admin/pending'),
   getVerified: () => apiRequest('/admin/verified'),
   verifyUser: (id) => apiRequest(`/admin/verify/${id}`, { method: 'PATCH' }),
   rejectUser: (id, reason) => apiRequest(`/admin/reject/${id}`, {
     method: 'DELETE',
     body: JSON.stringify({ reason }),
+  }),
+  deactivateUser: (id, reason) => apiRequest(`/admin/users/${id}/deactivate`, {
+    method: 'PATCH',
+    body: JSON.stringify({ reason }),
+  }),
+  reactivateUser: (id) => apiRequest(`/admin/users/${id}/reactivate`, { method: 'PATCH' }),
+  getUserAuditLogs: (id) => apiRequest(`/admin/users/${id}/audit-logs`),
+  
+  // Analytics
+  getAnalytics: () => apiRequest('/admin/analytics'),
+  
+  // Support Tickets
+  getTickets: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return apiRequest(`/admin/tickets${query ? `?${query}` : ''}`);
+  },
+  getTicket: (id) => apiRequest(`/admin/tickets/${id}`),
+  replyToTicket: (id, message) => apiRequest(`/admin/tickets/${id}/reply`, {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  }),
+  updateTicketStatus: (id, status) => apiRequest(`/admin/tickets/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  }),
+  
+  // Global Notifications
+  getNotifications: () => apiRequest('/admin/notifications'),
+  createNotification: (data) => apiRequest('/admin/notifications', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  deleteNotification: (id) => apiRequest(`/admin/notifications/${id}`, { method: 'DELETE' }),
+  
+  // System Settings
+  getSettings: () => apiRequest('/admin/settings'),
+  updateRates: (data) => apiRequest('/admin/settings/rates', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  }),
+  updateConfig: (data) => apiRequest('/admin/settings/config', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
   }),
 };
 
