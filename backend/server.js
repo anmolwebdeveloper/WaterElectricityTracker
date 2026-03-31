@@ -34,31 +34,19 @@ const corsOrigins = process.env.NODE_ENV === 'production'
       'http://localhost:5176'
     ].filter(Boolean);
 
-const corsOriginHandler = (origin, callback) => {
-  if (!origin) {
-    return callback(null, true);
-  }
-
-  if (corsOrigins.length === 0 || corsOrigins.includes(origin)) {
-    return callback(null, true);
-  }
-
-  return callback(new Error('Not allowed by CORS'));
-};
-
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: corsOrigins.length === 0 ? true : corsOrigins,
+    origin: true,
     methods: ['GET', 'POST'],
     credentials: true
   }
 });
 
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
-  origin: corsOriginHandler,
+  origin: true,
   credentials: true
 }));
 app.use(express.json());
