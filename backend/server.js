@@ -22,7 +22,7 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
+const frontendDistPath = path.join(__dirname, '..', 'frontend', 'dist');
 
 // CORS configuration for development and production
 const corsOrigins = process.env.NODE_ENV === 'production'
@@ -86,7 +86,10 @@ app.get('/api/health', (req, res) => {
 if (existsSync(path.join(frontendDistPath, 'index.html'))) {
   app.use(express.static(frontendDistPath));
 
-  app.get(/^(?!\/api(?:\/|$))(?!\/socket\.io(?:\/|$)).*/, (req, res) => {
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
+      return res.status(404).json({ error: 'API route not found' });
+    }
     res.sendFile(path.join(frontendDistPath, 'index.html'));
   });
 } else {
