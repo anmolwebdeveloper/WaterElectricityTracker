@@ -5,6 +5,9 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import path from 'path';
+import { existsSync } from 'fs';
+import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
 import readingsRoutes from './routes/readings.js';
 import alertsRoutes from './routes/alerts.js';
@@ -17,21 +20,37 @@ import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
+
 // CORS configuration for development and production
-const corsOrigins = process.env.NODE_ENV === 'production' 
-  ? [process.env.FRONTEND_URL]
+const corsOrigins = process.env.NODE_ENV === 'production'
+  ? [process.env.FRONTEND_URL].filter(Boolean)
   : [
       process.env.FRONTEND_URL || 'http://localhost:5173',
       'http://localhost:5174',
       'http://localhost:5175',
       'http://localhost:5176'
-    ];
+    ].filter(Boolean);
+
+const corsOriginHandler = (origin, callback) => {
+  if (!origin) {
+    return callback(null, true);
+  }
+
+  if (corsOrigins.length === 0 || corsOrigins.includes(origin)) {
+    return callback(null, true);
+  }
+
+  return callback(new Error('Not allowed by CORS'));
+};
 
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: corsOrigins,
+    origin: corsOrigins.length === 0 ? true : corsOrigins,
     methods: ['GET', 'POST'],
     credentials: true
   }
@@ -39,7 +58,7 @@ const io = new Server(httpServer, {
 
 app.use(helmet());
 app.use(cors({
-  origin: corsOrigins,
+  origin: corsOriginHandler,
   credentials: true
 }));
 app.use(express.json());
@@ -59,20 +78,32 @@ app.use('/api/meters', metersRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/admin', adminRoutes);
 
-app.get('/', (req, res) => {
-  if (process.env.NODE_ENV === 'production' && process.env.FRONTEND_URL) {
-    return res.redirect(process.env.FRONTEND_URL);
-  }
-
-  return res.json({
-    message: 'WattsFlow backend is running',
-    health: '/api/health'
-  });
-});
-
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(frontendDistPath));
+
+  app.get(/^(?!\/api(?:\/|$))(?!\/socket\.io(?:\/|$)).*/, (req, res) => {
+    const indexPath = path.join(frontendDistPath, 'index.html');
+
+    if (!existsSync(indexPath)) {
+      return res.status(503).json({
+        error: 'Frontend build not found. Ensure frontend/dist is built during deploy.'
+      });
+    }
+
+    return res.sendFile(indexPath);
+  });
+} else {
+  app.get('/', (req, res) => {
+    res.json({
+      message: 'WattsFlow backend is running',
+      health: '/api/health'
+    });
+  });
+}
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
