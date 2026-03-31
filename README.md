@@ -201,24 +201,12 @@ For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 1. Set up MongoDB Atlas - https://www.mongodb.com/cloud/atlas
 2. Configure environment variables on Render
 3. Connect your GitHub repository to Render
-4. Use the provided `render.yaml` configuration
+4. Create backend and frontend services from Render "New +" and deploy
 
 **Requirements:**
 - GitHub account with your repo
 - Render account (https://render.com)
 - MongoDB Atlas account (free tier available)
-
-### Pre-Deployment Checklist
-
-Run the verification script to ensure deployment readiness:
-
-```bash
-# Windows
-./verify-deployment.bat
-
-# Linux/Mac
-bash verify-deployment.sh
-```
 
 For security guidelines, see [SECURITY.md](./SECURITY.md).
 
