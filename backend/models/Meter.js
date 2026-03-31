@@ -22,6 +22,5 @@ const meterSchema = new mongoose.Schema({
 });
 
 meterSchema.index({ userId: 1, type: 1 });
-meterSchema.index({ meterNumber: 1 }, { unique: true });
 
 export default mongoose.model('Meter', meterSchema);

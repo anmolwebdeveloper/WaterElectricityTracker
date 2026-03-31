@@ -82,25 +82,19 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-if (process.env.NODE_ENV === 'production') {
+// Serve frontend in all environments if it exists, otherwise provide API health check
+if (existsSync(path.join(frontendDistPath, 'index.html'))) {
   app.use(express.static(frontendDistPath));
 
   app.get(/^(?!\/api(?:\/|$))(?!\/socket\.io(?:\/|$)).*/, (req, res) => {
-    const indexPath = path.join(frontendDistPath, 'index.html');
-
-    if (!existsSync(indexPath)) {
-      return res.status(503).json({
-        error: 'Frontend build not found. Ensure frontend/dist is built during deploy.'
-      });
-    }
-
-    return res.sendFile(indexPath);
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
   });
 } else {
   app.get('/', (req, res) => {
     res.json({
       message: 'WattsFlow backend is running',
-      health: '/api/health'
+      health: '/api/health',
+      notice: 'Frontend build not found. Run npm run build:frontend'
     });
   });
 }
