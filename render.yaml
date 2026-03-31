@@ -33,8 +33,9 @@ services:
       - key: TWILIO_PHONE_NUMBER
         sync: false
 
-  - type: static
+  - type: web
     name: wattsflow-frontend
+    env: static
     region: oregon
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
