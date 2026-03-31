@@ -29,7 +29,7 @@ import {
   Calendar,
   DollarSign,
   Zap,
-  Droplets,
+  Droplets, 
   Target,
   Brain,
   Clock,

@@ -191,7 +191,38 @@ npm run build            # Build frontend for production
 npm run install:all      # Install all dependencies
 ```
 
-## 👥 Contributing
+## � Deployment
+
+### Deploying to Render
+
+For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
+
+**Quick Start:**
+1. Set up MongoDB Atlas - https://www.mongodb.com/cloud/atlas
+2. Configure environment variables on Render
+3. Connect your GitHub repository to Render
+4. Use the provided `render.yaml` configuration
+
+**Requirements:**
+- GitHub account with your repo
+- Render account (https://render.com)
+- MongoDB Atlas account (free tier available)
+
+### Pre-Deployment Checklist
+
+Run the verification script to ensure deployment readiness:
+
+```bash
+# Windows
+./verify-deployment.bat
+
+# Linux/Mac
+bash verify-deployment.sh
+```
+
+For security guidelines, see [SECURITY.md](./SECURITY.md).
+
+## �👥 Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)

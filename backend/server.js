@@ -17,18 +17,29 @@ import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
+// CORS configuration for development and production
+const corsOrigins = process.env.NODE_ENV === 'production' 
+  ? [process.env.FRONTEND_URL]
+  : [
+      process.env.FRONTEND_URL || 'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
+      'http://localhost:5176'
+    ];
+
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    methods: ['GET', 'POST']
+    origin: corsOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
 app.use(helmet());
 app.use(cors({
-  origin: [process.env.FRONTEND_URL || 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176'],
+  origin: corsOrigins,
   credentials: true
 }));
 app.use(express.json());
