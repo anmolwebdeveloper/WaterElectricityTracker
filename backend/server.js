@@ -59,6 +59,17 @@ app.use('/api/meters', metersRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/admin', adminRoutes);
 
+app.get('/', (req, res) => {
+  if (process.env.NODE_ENV === 'production' && process.env.FRONTEND_URL) {
+    return res.redirect(process.env.FRONTEND_URL);
+  }
+
+  return res.json({
+    message: 'WattsFlow backend is running',
+    health: '/api/health'
+  });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
